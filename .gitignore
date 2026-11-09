@@ -1,0 +1,43 @@
+# 数据与权重（体积大，不进 git；只保留目录占位 .gitkeep）
+data/raw/*
+!data/raw/waterbirds/
+data/raw/waterbirds/*
+!data/raw/waterbirds/.gitkeep
+data/weights/*
+!data/weights/.gitkeep
+data/cache/*
+!data/cache/.gitkeep
+
+# 实验结果：日志与图片不追踪，csv 追踪（论文数字的唯一来源）
+code/results/logs/*
+!code/results/logs/.gitkeep
+code/results/figures/*
+!code/results/figures/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+env/
+.ipynb_checkpoints/
+
+# 编辑器 / 系统
+.vscode/settings.json
+.idea/
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# ★ Office 临时锁文件：必须忽略
+# Word/Excel 打开文件时会在同目录生成 ~$xxx.docx，
+# 批量脚本处理 docx 时若不排除，会读到 0 字节或损坏的锁文件而报错（本项目已踩过一次）。
+~$*
+*.tmp
+
+# 大文件与临时产物
+*.pth
+*.bin
+*.safetensors
+*.zip
+*.tar.gz

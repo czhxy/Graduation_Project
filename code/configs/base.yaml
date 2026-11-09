@@ -1,0 +1,68 @@
+# =============================================================================
+# base.yaml —— 全局配置（所有实验共用的默认值）
+#
+# 规矩：代码里不要出现魔法数字与硬编码路径，一律从这里读。
+#       每个具体实验写一个 exp_xxx.yaml，用 extends 覆盖少量字段。
+# ★ 本文件里带 ★ 的字段与任务书要求直接相关，改动必须记入「进度.md」的决策记录。
+# =============================================================================
+
+project: clip-background-dependency      # 项目标识
+seed: 42                                 # 全局随机种子
+
+paths:
+  # 相对本文件（code/configs/）解析
+  data_root: ../../data/raw/waterbirds   # ★ 数据根目录
+  weights_dir: ../../data/weights        # ★ CLIP 权重缓存
+  cache_dir: ../../data/cache            # HF / open_clip 下载缓存
+  results_dir: ../results
+  figures_dir: ../results/figures
+  logs_dir: ../results/logs
+
+model:
+  name: ViT-B-16                         # ★ 任务书指定，不要换
+  pretrained: openai                     # openai 权重
+  image_size: 224                        # patch=16 → 14×14=196 token
+  freeze: true                           # ★★ 全程冻结，不训练、不微调
+  device: auto                           # auto | cuda | cpu
+
+data:
+  dataset: waterbirds
+  num_classes: 2
+  class_names: [landbird, waterbird]     # ★ 类别顺序固定，全文一致
+  # ★★ 文本提示必须固定并写进实验记录（任务书明确要求）
+  prompt_template: "a photo of a {class}."
+  batch_size: 32                         # 本机 4060：32~64；3090：128~256
+  num_workers: 4
+  splits: [train, val, test]
+
+eval:
+  metrics: [overall_acc, group_acc, worst_group_acc]
+  # ★ 四组定义（类别 + 背景），顺序固定
+  groups:
+    - waterbird_on_water      # 多数组
+    - waterbird_on_land       # 少数组
+    - landbird_on_land        # 多数组
+    - landbird_on_water       # 少数组
+
+intervene:
+  # ★★ 主实验用哪一种，必须在论文「方法」章写清（任务书硬性要求）
+  #   contribution_edit   = 表征贡献编辑（在最终表征上减去某头的贡献分量）
+  #   activation_ablation = 中间激活消融（前向时把头输出置零）
+  method: contribution_edit
+  operation: zero                        # zero | scale
+  scale: 0.0                             # operation=scale 时生效
+  k: 10                                  # 抑制头数；只在验证集上调
+  # ★ 干预后用测试集评测一次，禁止用测试集选参
+  select_on: val
+
+scoring:
+  # 头级评分（第 10~11 周）
+  text_concepts:                         # ★ 用于构造"背景方向"的文本集合
+    background: [water, water surface, lake, ocean, land, grass, ground]
+    foreground: [bird, waterbird, landbird, feather, wing]
+  num_samples: 200                       # 评分用的样本数（要记录）
+  aggregate: mean                        # 逐样本贡献的聚合方式
+
+logging:
+  save_activations: false                # 全量存激活会爆盘，只在调试时开
+  log_every: 50
