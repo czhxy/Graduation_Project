@@ -220,7 +220,7 @@ Graduation_Project\           # 项目根：只放 README.md / CLAUDE.md / 进�
 │   ├── requirements.txt
 │   └── README.md
 ├── data\                      # 数据集与权重本体：raw\waterbirds\ weights\ cache\
-├── paper\                     # 论文：00_开题\ 01_文献翻译\ 02_正文\ 03_图表\ 04_答辩\
+├── paper\                     # 论文：00_开题\ 01_文献翻译\ 02_正文\ 03_图表\ 04_答辩\ 05_文献\
 |
 └── .gitignore                 # 已排除 data\ ~$* results\logs\ 等
 '''

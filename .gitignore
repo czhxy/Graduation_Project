@@ -41,3 +41,8 @@ desktop.ini
 *.safetensors
 *.zip
 *.tar.gz
+
+# 文献原文 PDF：版权 + 体积，默认不进 git；正式备份在 Zotero
+# （阅读笔记与索引进 paper/05_文献/01_core 等目录）
+paper/05_文献/00_原文PDF/*
+!paper/05_文献/00_原文PDF/.gitkeep

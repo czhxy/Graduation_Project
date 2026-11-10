@@ -499,7 +499,8 @@ K.code_block(doc, """# 文献笔记 · {编号} {中文简称}
 - BibTeX key：""", size=8.2)
 
 K.h2(doc, "目录命名与 Zotero 建议")
-K.p(doc, "工作目录建议分四层：01_core / 02_support / 03_on_demand / 99_translation，另加一个“文献笔记汇总.md”做索引。"
+K.p(doc, "项目内统一放进 paper/05_文献/：原文 PDF 放 00_原文PDF/（默认不进 git，Zotero 里另有一份），"
+         "笔记按四层分 01_core / 02_support / 03_on_demand / 99_translation，另加一个“文献笔记汇总.md”做索引。"
          "文件名统一为“编号_简称_年份_读法.md”（如 04_TextSpan_2024_精读笔记.md）；译文用 v1/v2/final 版本号，旧版移到 _old/ 不覆盖；"
          "每周日压缩一份带日期（YYYYMMDD）的备份放网盘。")
 K.num(doc, 1, "装 Zotero 7 + 浏览器插件，在 Google Scholar / arXiv 一键入库，PDF 拖进条目自动挂附件。")

@@ -205,7 +205,7 @@ K.code_block(doc, """Graduation_Project/           # 项目根：只放导航文
 │   ├── weights/               # CLIP ViT-B/16 权重
 │   └── cache/                 # HF / open_clip 下载缓存
 ├── paper/                     # 论文产出
-│   ├── 00_开题/ 01_文献翻译/ 02_正文/ 03_图表/ 04_答辩/
+│   ├── 00_开题/ 01_文献翻译/ 02_正文/ 03_图表/ 04_答辩/ 05_文献/
 └── tools/                     # 文档生成与校验脚本（不用手改 docs）""")
 
 K.h2(doc, "README.md 必须包含的八项内容")
