@@ -14,6 +14,29 @@ from openpyxl.utils import get_column_letter
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                    "docs", "06_进度追踪表.xlsx")
 
+# ------------------------------------------------------------------ 全局计数
+TOTAL_TASKS = sum(len(w[3]) for w in S.WEEKS)   # 任务总数（从 WEEKS 现算，不硬编码）
+LAST_TASK_ROW = TOTAL_TASKS + 1                 # 任务清单最后一行（第 1 行是表头）
+
+# ------------------------------------------------------------------ 已完成状态保留
+# 结构：{任务 ID: (状态, 完成日期, 备注)}。
+# 任务 ID 按 plan_spec.WEEKS 的**当前**顺序编号（W01 有 10 条、W02 有 5 条），
+# 周计划一旦重排，ID 与内容的对应关系就会变；脚本末尾会打印实际写入的任务原文，
+# 若 ID 对不上，请按「备注 → 任务内容」匹配后修改这里的 key，而不是手改 xlsx。
+#
+# 2026-11-24 核对：原清单里的 W01-8 备注是「Waterbirds 官方包已下载校验」，
+# 但新版 W01 的第 8 条是「下载 CLIP ViT-B/16 权重」，Waterbirds 下载是第 9 条，
+# 故此处 key 改为 W01-9（其余 6 条 ID 与内容一致）。
+DONE = {
+    "W01-1": ("已完成", date(2026, 11, 24), "预修复盘：ML 概念"),
+    "W01-2": ("已完成", date(2026, 11, 24), "预修复盘：numpy/matplotlib"),
+    "W01-3": ("已完成", date(2026, 11, 24), "预修复盘：nn.Module/DataLoader/前向"),
+    "W01-4": ("已完成", date(2026, 11, 24), "预修复盘：autograd/no_grad"),
+    "W01-5": ("已完成", date(2026, 11, 15), "Anaconda 已有，conda 可用；.condarc 归入 W01-6"),
+    "W01-9": ("已完成", date(2026, 11, 24), "Waterbirds 官方包已下载校验"),
+    "W02-4": ("已完成", date(2026, 11, 24), "四组统计：1057/56/3498/184 等"),
+}
+
 # ------------------------------------------------------------------ 样式常量
 C_HEAD = "1F3B63"
 C_HEAD2 = "DCE6F1"
@@ -108,46 +131,51 @@ ws["D5"] = "← 只改这个单元格"
 ws["D5"].font = F_SUB
 ws["D5"].alignment = AL_L
 
-ws["B6"] = "结束日期（第26周周日）"
+ws["B6"] = f"结束日期（第{S.TOTAL_WEEKS}周周日）"
 ws["B6"].font = F_BOLD
 ws["B6"].alignment = AL_L
 ws["B6"].border = BORDER
-ws["C6"] = "=C5+7*26-1"
+ws["C6"] = f"=C5+7*{S.TOTAL_WEEKS}-1"
 ws["C6"].number_format = "yyyy-mm-dd"
 ws["C6"].font = F_BODY
 ws["C6"].alignment = AL_C
 ws["C6"].border = BORDER
 
+# KPI 行号集中定义：B 列放标签、C 列放数值。所有公式一律用这些常量拼字符串，
+# 不再手写 "C12/C13" 这种魔数，增删一行也不会再出现「公式指到上一行」的错位。
+# 注意：R_LEFT 是「距结束」这一行的行号，结束日期本身在 C6，别混用。
+R_TODAY, R_WEEK, R_LEFT = 9, 10, 11
+R_TOTAL, R_DONE, R_WIP, R_BLOCK = 12, 13, 14, 15
+R_RATE, R_DUE, R_HEALTH = 16, 17, 18
+END_DATE_CELL = "$C$6"        # B6 标签 / C6 公式：第 1 周周一 + 7*TOTAL_WEEKS - 1
+assert (R_TODAY, R_WEEK, R_LEFT, R_TOTAL, R_DONE, R_WIP, R_BLOCK,
+        R_RATE, R_DUE, R_HEALTH) == tuple(range(9, 19)), "KPI 行号必须连续且从第 9 行起"
+assert R_WEEK < R_DUE < R_HEALTH and R_TOTAL < R_RATE and R_DONE < R_RATE
+
 rows_kpi = [
-    ("今天", "=TODAY()", "yyyy-mm-dd"),
-    ("当前所处周次", "=IF(TODAY()<C5,0,MIN(27,INT((TODAY()-C5)/7)+1))", "0"),
-    ("距结束还有（天）", "=MAX(0,C6-TODAY())", "0"),
-    ("总任务数", "=COUNTA('② 任务清单'!G2:G400)", "0"),
-    ("已完成任务数", '=COUNTIF(\'② 任务清单\'!I:I,"已完成")', "0"),
-    ("进行中任务数", '=COUNTIF(\'② 任务清单\'!I:I,"进行中")', "0"),
-    ("受阻任务数", '=COUNTIF(\'② 任务清单\'!I:I,"受阻")', "0"),
-    ("总完成率", "=IFERROR(C12/C11,0)", "0.0%"),
-    ("应完成（截至上周）", "=COUNTIF('② 任务清单'!B:B,\"<\"&C10)", "0"),
-    ("进度健康度", '=IF(C15=0,"—",IF(C12/C15>=0.9,"正常",IF(C12/C15>=0.7,"略滞后","严重滞后")))', "@"),
+    (R_TODAY, "今天", "=TODAY()", "yyyy-mm-dd"),
+    (R_WEEK, "当前所处周次",
+     f"=IF(TODAY()<C5,0,MIN({S.TOTAL_WEEKS},INT((TODAY()-C5)/7)+1))", "0"),
+    (R_LEFT, "距结束还有（天）", f"=MAX(0,{END_DATE_CELL}-TODAY())", "0"),
+    (R_TOTAL, "总任务数", f"=COUNTA('② 任务清单'!G2:G{LAST_TASK_ROW})", "0"),
+    (R_DONE, "已完成任务数", '=COUNTIF(\'② 任务清单\'!I:I,"已完成")', "0"),
+    (R_WIP, "进行中任务数", '=COUNTIF(\'② 任务清单\'!I:I,"进行中")', "0"),
+    (R_BLOCK, "受阻任务数", '=COUNTIF(\'② 任务清单\'!I:I,"受阻")', "0"),
+    (R_RATE, "总完成率", f"=IFERROR(C{R_DONE}/C{R_TOTAL},0)", "0.0%"),
+    (R_DUE, "应完成（截至上周）", f'=COUNTIF(\'② 任务清单\'!B:B,"<"&C{R_WEEK})', "0"),
+    (R_HEALTH, "进度健康度",
+     f'=IF(C{R_DUE}=0,"—",IF(C{R_DONE}/C{R_DUE}>=0.9,"正常",'
+     f'IF(C{R_DONE}/C{R_DUE}>=0.7,"略滞后","严重滞后")))', "@"),
 ]
-r = 9
-for label, val, fmt in rows_kpi:
-    ws.cell(row=r, column=2, value=label).font = F_BOLD
-    ws.cell(row=r, column=2).alignment = AL_L
-    ws.cell(row=r, column=2).border = BORDER
-    cc = ws.cell(row=r, column=3, value=val)
+for row, label, val, fmt in rows_kpi:
+    ws.cell(row=row, column=2, value=label).font = F_BOLD
+    ws.cell(row=row, column=2).alignment = AL_L
+    ws.cell(row=row, column=2).border = BORDER
+    cc = ws.cell(row=row, column=3, value=val)
     cc.number_format = fmt
     cc.font = F_BODY
     cc.alignment = AL_C
     cc.border = BORDER
-    r += 1
-
-# 修正 KPI 里的行号引用（总任务数在第 12 行、完成在第13行 → 完成率引用）
-ws["C16"] = "=IFERROR(C13/C12,0)"
-ws["C16"].number_format = "0.0%"
-ws["C17"] = "=COUNTIF('② 任务清单'!B:B,\"<\"&C10)"
-ws["C17"].number_format = "0"
-ws["C18"] = '=IF(C17=0,"—",IF(C13/C17>=0.9,"正常",IF(C13/C17>=0.7,"略滞后","严重滞后")))'
 
 wr = 21
 ws.cell(row=wr, column=2, value="各阶段完成情况").font = Font(name="微软雅黑", size=12, bold=True, color=C_HEAD)
@@ -172,8 +200,15 @@ for ph in S.PHASES:
     ws.cell(row=r, column=2).alignment = AL_L
     ws.cell(row=r, column=2).border = BORDER
     ws.cell(row=r, column=3, value=f"W{w0}–W{w1}").alignment = AL_C
-    ws.cell(row=r, column=4, value=f'=COUNTIF(\'② 任务清单\'!B:B,">="&{w0})-COUNTIF(\'② 任务清单\'!B:B,">"&{w1})')
-    ws.cell(row=r, column=5, value=f'=COUNTIFS(\'② 任务清单\'!B:B,">="&{w0},\'② 任务清单\'!B:B,"<="&{w1},\'② 任务清单\'!I:I,"已完成")')
+    # 阶段任务数 / 已完成：按任务清单 B 列周次落在 [w0, w1] 内统计。
+    # w0/w1 全部来自 S.PHASES，最后一个阶段自动是 W19–W27（9 周），不写死周数。
+    ws.cell(row=r, column=4, value=(
+        f'=COUNTIF(\'② 任务清单\'!B2:B{LAST_TASK_ROW},">="&{w0})'
+        f'-COUNTIF(\'② 任务清单\'!B2:B{LAST_TASK_ROW},">"&{w1})'))
+    ws.cell(row=r, column=5, value=(
+        f'=COUNTIFS(\'② 任务清单\'!B2:B{LAST_TASK_ROW},">="&{w0},'
+        f'\'② 任务清单\'!B2:B{LAST_TASK_ROW},"<="&{w1},'
+        f'\'② 任务清单\'!I2:I{LAST_TASK_ROW},"已完成")'))
     ws.cell(row=r, column=6, value=f"=IFERROR(E{r}/D{r},0)")
     ws.cell(row=r, column=6).number_format = "0.0%"
     for cc in range(3, 7):
@@ -184,7 +219,7 @@ for ph in S.PHASES:
     r += 1
 
 ws.cell(row=r + 1, column=2,
-        value="提示：任务清单里每一行是一周里的一个具体动作，共 %d 条。" % sum(len(w[3]) for w in S.WEEKS)).font = F_SUB
+        value="提示：任务清单里每一行是一周里的一个具体动作，共 %d 条。" % TOTAL_TASKS).font = F_SUB
 
 ws.sheet_view.showGridLines = False
 
@@ -197,11 +232,16 @@ head_row(ws2, 1, headers2,
          widths=[9, 6, 8, 12, 12, 24, 46, 30, 10, 12, 24], height=30)
 
 r = 2
+applied_done = {}          # 实际写入的「已完成」任务：{任务ID: 任务原文}
 for w, pid, theme, tasks, deliver in S.WEEKS:
     phase_name = next(p["name"] for p in S.PHASES if p["pid"] == pid)
     mon, sun = S.week_range(w)
     for ti, task in enumerate(tasks, 1):
-        vals = [f"W{w:02d}-{ti}", w, phase_name, mon, sun, theme, task, deliver, "未开始", None, None]
+        tid = f"W{w:02d}-{ti}"
+        status, done_date, note = DONE.get(tid, ("未开始", None, None))
+        if tid in DONE:
+            applied_done[tid] = task
+        vals = [tid, w, phase_name, mon, sun, theme, task, deliver, status, done_date, note]
         fill_row(ws2, r, vals, aligns="cclllllcccl", band=(r % 2 == 0))
         ws2.cell(row=r, column=4).number_format = "mm-dd"
         ws2.cell(row=r, column=5).number_format = "mm-dd"
@@ -210,6 +250,16 @@ for w, pid, theme, tasks, deliver in S.WEEKS:
         ws2.row_dimensions[r].height = 34
         r += 1
 last2 = r - 1
+
+# 自查：DONE 里的 ID 必须都能在新版 WEEKS 里找到；并打印实际写入的任务原文，
+# 方便人工核对「备注 ↔ 任务内容」是否对得上（ID 重排后尤其要看的这一步）。
+missing = sorted(set(DONE) - set(applied_done))
+if missing:
+    raise SystemExit("DONE 中这些任务 ID 在新版 plan_spec.WEEKS 里不存在：" + "、".join(missing))
+print("任务总数：%d（任务清单第 2~%d 行）" % (TOTAL_TASKS, last2))
+print("已完成状态保留 %d 条：" % len(applied_done))
+for tid in sorted(applied_done):
+    print("  %-6s %s | %s" % (tid, applied_done[tid], DONE[tid][2]))
 
 # 数据验证：状态下拉
 dv = DataValidation(type="list",
@@ -269,7 +319,7 @@ ws3.sheet_view.zoomScale = 90
 # ================================================================== 4. 甘特图
 ws4 = wb.create_sheet("④ 甘特图")
 ws4.sheet_properties.tabColor = "BF8F00"
-ws4["A1"] = "26 周甘特图（阶段色带 + 里程碑）"
+ws4["A1"] = f"{S.TOTAL_WEEKS} 周甘特图（阶段色带 + 里程碑）"
 ws4["A1"].font = Font(name="微软雅黑", size=14, bold=True, color=C_HEAD)
 ws4.column_dimensions["A"].width = 4
 ws4.column_dimensions["B"].width = 30
@@ -399,18 +449,24 @@ ws6.auto_filter.ref = f"A1:I{r-1}"
 ws7 = wb.create_sheet("⑦ 实验记录")
 ws7.sheet_properties.tabColor = "00B0F0"
 ws7["A1"] = ("实验记录表：每跑一次实验填一行。原则——论文里每个数字都必须能在这张表里找到，"
-             "并且能顺着“结果路径”找到原始日志。")
+             "并且能顺着“结果路径”找到原始日志。k 与头集合必须写清（并集 vs LTC 要同 k）；"
+             "换景分数是 margin 变化、可正可负，不是准确率；背景识别 B1/B2/B3 三口径分开记。")
 ws7["A1"].font = F_SUB
-ws7.merge_cells("A1:J1")
-head_row(ws7, 2, ["实验ID", "日期", "实验名称", "关键配置", "总体准确率", "最差组准确率",
-                  "随机种子", "结果文件路径", "对应论文表/图", "备注"],
-         widths=[12, 12, 26, 34, 12, 13, 10, 30, 14, 24], height=30)
-for r in range(3, 43):
-    for cc in range(1, 11):
+EXP_HEADERS = ["实验ID", "日期", "实验名称", "关键配置", "k", "头集合",
+               "总体", "最差组", "换景分数(水)", "换景分数(陆)",
+               "背景识别(B1)", "背景识别(B2)", "背景识别(B3)",
+               "种子", "结果路径", "对应图表", "备注"]
+EXP_WIDTHS = [12, 12, 26, 34, 6, 22, 9, 9, 12, 12, 12, 12, 12, 8, 30, 14, 24]
+ws7.merge_cells("A1:Q1")
+head_row(ws7, 2, EXP_HEADERS, widths=EXP_WIDTHS, height=32)
+EXP_BLANK_ROWS = 50        # 空行数（至少 50）
+for r in range(3, 3 + EXP_BLANK_ROWS):
+    for cc in range(1, len(EXP_HEADERS) + 1):
         cell = ws7.cell(row=r, column=cc)
         cell.border = BORDER
         cell.font = F_BODY
-        cell.alignment = AL_L if cc in (3, 4, 8, 10) else AL_C
+        # 文字型列靠左，数值/日期/短标记列居中
+        cell.alignment = AL_L if cc in (3, 4, 6, 15, 17) else AL_C
     ws7.cell(row=r, column=2).number_format = "yyyy-mm-dd"
     ws7.row_dimensions[r].height = 22
 ws7.freeze_panes = "A3"
@@ -433,5 +489,11 @@ ws8.add_data_validation(dv8)
 dv8.add(f"D4:D{r-1}")
 ws8.freeze_panes = "B4"
 
+# 打开时强制重算：openpyxl 只写公式不写值，Excel/WPS/LibreOffice 打开会自动算一遍
+wb.calculation.fullCalcOnLoad = True
+
 wb.save(OUT)
+print("文献 %d 篇（core %d）、里程碑 %d 个、周报 %d 行、甘特 %d 周" % (
+    len(S.LITERATURE), sum(1 for x in S.LITERATURE if x["kind"] == "core"),
+    len(S.MILESTONES), S.TOTAL_WEEKS, S.TOTAL_WEEKS))
 print("OK ->", OUT)

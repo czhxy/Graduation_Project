@@ -4,6 +4,9 @@ import os, re, sys
 from docx import Document
 from openpyxl import load_workbook
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs")
 DOCS = ["00_总览_先看这个.docx", "01_研究方向与技术路线.docx", "02_最终成果清单与验收标准.docx",
         "03_文献阅读清单.docx", "04_软件与环境配置.docx", "05_时间节点与任务计划.docx"]
@@ -96,12 +99,19 @@ print("=" * 78)
 print("④ 关键数字口径一致性")
 print("=" * 78)
 checks = [
-    ("总周数 26", lambda t: "26 周" in t or "26周" in t),
-    ("里程碑 M1~M6", lambda t: "M6" in t),
+    ("总周数 27", lambda t: "27 周" in t or "27周" in t),
+    ("里程碑 M6", lambda t: "M6" in t),
     ("144 个头", lambda t: "144" in t),
+    ("两条捷径", lambda t: ("水面捷径" in t and "陆地捷径" in t)),
+    ("换景分数", lambda t: "换景分数" in t),
+    ("并集抑制", lambda t: "并集" in t),
+    ("同 k 对比", lambda t: ("同 k" in t or "相同干预头数" in t)),
 ]
 for f in ["00_总览_先看这个.docx", "01_研究方向与技术路线.docx", "05_时间节点与任务计划.docx"]:
-    print(f"  {f[:2]} 号: " + ", ".join(f"{n}={'✓' if fn(texts[f]) else '✗'}" for n, fn in checks))
+    # 00 是索引页；M6 只在 05 的里程碑表里要求；144 头在 01/05 要求
+    drop = {"00": {"里程碑 M6", "144 个头"}, "01": {"里程碑 M6"}, "05": set()}[f[:2]]
+    applicable = [c for c in checks if c[0] not in drop]
+    print(f"  {f[:2]} 号: " + ", ".join(f"{n}={'✓' if fn(texts[f]) else '✗'}" for n, fn in applicable))
 
 for label, pat in [
     ("'九张图' 说法", r"九张图"),

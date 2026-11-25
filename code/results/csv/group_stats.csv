@@ -1,0 +1,4 @@
+﻿split,waterbird_on_water,waterbird_on_land,landbird_on_land,landbird_on_water,total
+train,1057,56,3498,184,4795
+val,133,133,467,466,1199
+test,642,642,2255,2255,5794

@@ -23,16 +23,21 @@
 
 ```
 scripts/
-├── 00_check_env.py        # 环境自检（第 1 周）
-├── 01_stats_groups.py     # 四组样本统计（第 7 周）
-├── 02_baseline.py         # 零样本基线评测（第 8 周）
-├── 03_head_scoring.py     # 头级评分与排序（第 10~11 周）
-├── 04_intervene.py        # 定向抑制 / 随机抑制（第 12~13 周）
-├── 05_scan_k.py           # 抑制头数扫描（第 14 周）
-├── 06_main_results.py     # 测试集主结果（第 15 周）
-├── 07_ablation.py         # 补充消融（第 18 周）
-└── 08_make_tables.py      # 由 results/csv 生成论文表格（第 16~19 周）
+├── 00_check_env.py        # 环境自检（W1）
+├── 01_stats_groups.py     # 四组样本统计（W2）
+├── 02_make_masks.py       # 由 CUB segmentation 生成前景掩码（W5）
+├── 03_make_swaps.py       # 同前景换景样本（两方向，W5）
+├── 04_baseline.py         # 零样本基线 + 换景分数 + 背景识别基线（W4–W5）
+├── 05_head_scoring.py     # LTC 评分 + 水面/陆地双向选头 + LTC 合并集合（W7–W9）
+├── 06_intervene.py        # 单独/并集/LTC/随机抑制（W10）
+├── 07_scan_k.py           # 验证集选 k 与方案（W10）
+├── 08_main_results.py     # 测试集 6 组主实验 + 同 k 对比（W11）
+├── 09_background_probe.py # 背景识别三口径复评（W12）
+└── 10_make_tables.py      # 由 results/csv 生成论文表格（W14–W18）
 ```
+
+> 编号是规划；当前已存在 `00_check_env.py`、`01_stats_groups.py`、`02_make_masks.py`。
+> 新增脚本按上表编号，避免与已有文件冲突。
 
 ## 三条硬规矩
 
