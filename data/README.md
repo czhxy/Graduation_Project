@@ -15,7 +15,7 @@ data/
 │       ├── 001.Black_footed_Albatross/ … 200.Common_Yellowthroat/   # 200 个 CUB 类别目录
 │       ├── metadata.csv            # 11,788 行：img_id / img_filename / y / split / place / place_filename
 │       └── segmentations/          # 11,788 个前景掩码 PNG（鸟=255），由 CUB 掩码按 img_filename 复制
-├── weights/                        # CLIP ViT-B/16 权重缓存
+├── weights/                        # CLIP ViT-B/16 权重（已下载 ViT-B-16.pt）
 ├── cache/                          # HF / open_clip 下载缓存（可删，删了重下）
 └── processed/
     └── swaps/                      # 规划中：同前景换景样本（两方向），只用于评测
@@ -43,6 +43,15 @@ data/
 | 来源 | `data.caltech.edu`：图像包为记录 `65de6-vp158`，掩码包为独立记录 `w9d68-gec53` |
 | 关键事实 | 记录 `65de6-vp158` 的 `CUB_200_2011.tgz` **不含** `segmentations/`，掩码必须另下 `w9d68-gec53` 的 `segmentations.tgz` |
 | 校验 | tar 完整；掩码 11,788 个，与 metadata 一一对应、缺失 0 |
+
+### CLIP ViT-B/16 权重
+
+| 项 | 值 |
+|---|---|
+| 文件 | `data/weights/ViT-B-16.pt`，350,837,078 B |
+| sha256 | `5806e77cd80f8b59890b7e101eabd078d9fb84e6937f9e85e4ecb61988df416f` |
+| 来源 | OpenAI CLIP 官方 CDN `openaipublic.azureedge.net/clip/models/.../ViT-B-16.pt`（open_clip `pretrained='openai'` 拉取的同一文件） |
+| 校验 | 2026-11-25：大小与 HTTP `Content-Length` 一致；sha256 与 CDN 路径前缀一致；`torch.jit.load` 成功，149.6M 参数 |
 
 ## 字段含义（易错）
 

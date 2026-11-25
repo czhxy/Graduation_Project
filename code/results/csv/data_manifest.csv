@@ -1,2 +1,3 @@
 ﻿包名,来源,下载日期,大小_bytes,sha256,解压位置,说明
 waterbird_stanford.tar.gz,Stanford 官方包，经 Wayback Machine 2024-09-20 快照取得（nlp.stanford.edu 原地址本机不可达）,2026-11-24,489698023,56c51b77f7d17283ac97003d973e9107e8af9ceebffcb0c8be14d024f846f951,data/raw/waterbirds,"11,788 图 + metadata.csv；place 列表示背景；不含分割掩码"
+ViT-B-16.pt,"OpenAI CLIP 官方 CDN（openaipublic.azureedge.net/clip/models，即 open_clip pretrained=openai 同一文件）",2026-11-25,350837078,5806e77cd80f8b59890b7e101eabd078d9fb84e6937f9e85e4ecb61988df416f,data/weights,"CLIP ViT-B/16；torch.jit 可加载，149.6M 参数；全程冻结——不训练、不微调"
